@@ -1,0 +1,9 @@
+model/*
+*.npy
+*.h5
+*.keras
+*.json
+*.csv
+*.png
+venv/*
+*.ipynb
