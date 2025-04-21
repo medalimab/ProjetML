@@ -1,0 +1,86 @@
+name: Train and Deploy MRI Model
+
+on:
+    workflow_dispatch:
+        inputs:
+            environment:
+                description: "Environment to deploy to"
+                required: true
+                default: "production"
+                type: choice
+                options:
+                    - production
+
+jobs:
+    train-and-deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+
+            - name: Setup Python Environment
+              uses: appleboy/ssh-action@master
+              with:
+                  host: ${{ secrets.VPS_HOST }}
+                  username: ${{ secrets.VPS_USERNAME }}
+                  key: ${{ secrets.VPS_SSH_KEY }}
+                  script: |
+                      if [ ! -d "venv" ]; then
+                        python3.10 -m venv venv
+                        source venv/bin/activate
+                        pip install -r requirements.txt
+                      else
+                        source venv/bin/activate
+                        pip install -r requirements.txt
+                      fi
+
+            - name: Setup Streamlit
+              uses: appleboy/ssh-action@master
+              with:
+                  host: ${{ secrets.VPS_HOST }}
+                  username: ${{ secrets.VPS_USERNAME }}
+                  key: ${{ secrets.VPS_SSH_KEY }}
+                  script: |
+                      if ! command -v streamlit &> /dev/null; then
+                        source venv/bin/activate
+                        pip install streamlit
+                      fi
+
+            - name: Train Model
+              uses: appleboy/ssh-action@master
+              with:
+                  host: ${{ secrets.VPS_HOST }}
+                  username: ${{ secrets.VPS_USERNAME }}
+                  key: ${{ secrets.VPS_SSH_KEY }}
+                  script: |
+                      source venv/bin/activate
+                      cd ~/projects/ProjetML
+                      python train_models.py
+
+            - name: Create Start Script
+              uses: appleboy/ssh-action@master
+              with:
+                  host: ${{ secrets.VPS_HOST }}
+                  username: ${{ secrets.VPS_USERNAME }}
+                  key: ${{ secrets.VPS_SSH_KEY }}
+                  script: |
+                      cd ~/projects/ProjetML
+                      if [ ! -f "start.sh" ]; then
+                        echo '#!/bin/bash' > start.sh
+                        echo '~/.local/bin/streamlit run app.py --server.port 8501' >> start.sh
+                        chmod +x start.sh
+                      fi
+
+            - name: Deploy with PM2
+              uses: appleboy/ssh-action@master
+              with:
+                  host: ${{ secrets.VPS_HOST }}
+                  username: ${{ secrets.VPS_USERNAME }}
+                  key: ${{ secrets.VPS_SSH_KEY }}
+                  script: |
+                      cd ~/projects/ProjetML
+                      if pm2 list | grep -q "mri-app"; then
+                        pm2 restart mri-app
+                      else
+                        pm2 start ./start.sh --name mri-app
+                      fi
