@@ -5,6 +5,7 @@ from tensorflow.keras import layers, models
 import os
 from skimage.transform import resize
 from pathlib import Path
+import json
 
 def load_npy_data(directory):
     """Load .npy files and their filenames from a directory"""
@@ -55,6 +56,62 @@ def create_model():
     
     return model
 
+def limit_dataset_size(data, filenames, labels, max_samples=10):
+    """Limit the dataset to a small number of samples while maintaining class balance"""
+    # If max_samples is -1, return the full dataset without limiting
+    if max_samples == -1:
+        return data, filenames, labels
+        
+    if len(data) <= max_samples:
+        return data, filenames, labels
+    
+    # Convert to numpy arrays for easier manipulation
+    data = np.array(data, dtype=object)  # Use dtype=object to handle varying shapes
+    filenames = np.array(filenames)
+    labels = np.array(labels)
+    
+    # Get indices for positive and negative samples
+    pos_indices = np.where(labels == 1)[0]
+    neg_indices = np.where(labels == 0)[0]
+    
+    # Calculate how many samples to take from each class
+    pos_samples = min(len(pos_indices), max_samples // 2)
+    neg_samples = max_samples - pos_samples
+    
+    # Randomly select samples from each class
+    np.random.seed(42)  # For reproducibility
+    selected_pos = np.random.choice(pos_indices, pos_samples, replace=False)
+    selected_neg = np.random.choice(neg_indices, neg_samples, replace=False)
+    
+    # Combine selected indices
+    selected_indices = np.concatenate([selected_pos, selected_neg])
+    
+    # Convert back to list for data to maintain original format
+    return data[selected_indices].tolist(), filenames[selected_indices], labels[selected_indices]
+
+def calculate_metrics(y_true, y_pred):
+    """Calculate accuracy, precision, and recall manually"""
+    y_pred_binary = (y_pred > 0.5).astype(int)
+    
+    # Calculate true positives, false positives, true negatives, false negatives
+    tp = np.sum((y_true == 1) & (y_pred_binary == 1))
+    fp = np.sum((y_true == 0) & (y_pred_binary == 1))
+    tn = np.sum((y_true == 0) & (y_pred_binary == 0))
+    fn = np.sum((y_true == 1) & (y_pred_binary == 0))
+    
+    # Calculate metrics
+    accuracy = (tp + tn) / (tp + tn + fp + fn) if (tp + tn + fp + fn) > 0 else 0
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+    
+    return accuracy, precision, recall
+
+def save_metrics(condition, metrics):
+    """Save metrics to a JSON file"""
+    metrics_path = f'./model/{condition.lower()}_metrics.json'
+    with open(metrics_path, 'w') as f:
+        json.dump(metrics, f)
+
 def train_model(condition):
     """Train a model for a specific condition (ACL/Meniscus/Abnormal)"""
     print(f"\nTraining model for {condition}...")
@@ -75,6 +132,11 @@ def train_model(condition):
     y_train = np.array([train_labels_dict.get(fname, 0) for fname in train_filenames], dtype='int')
     y_valid = np.array([valid_labels_dict.get(fname, 0) for fname in valid_filenames], dtype='int')
     
+    # Limit dataset size
+    # Use -1 to use the full dataset without limiting
+    train_data, train_filenames, y_train = limit_dataset_size(train_data, train_filenames, y_train, max_samples=10)
+    valid_data, valid_filenames, y_valid = limit_dataset_size(valid_data, valid_filenames, y_valid, max_samples=5)
+    
     # Preprocess scans
     X_train = np.array([preprocess_scan(scan) for scan in train_data])
     X_valid = np.array([preprocess_scan(scan) for scan in valid_data])
@@ -93,31 +155,55 @@ def train_model(condition):
     # Create and train model
     model = create_model()
     
+    # Add early stopping to prevent overfitting on small dataset
+    early_stopping = tf.keras.callbacks.EarlyStopping(
+        monitor='val_loss',
+        patience=3,
+        restore_best_weights=True
+    )
+    
     history = model.fit(
         X_train_flat,
         y_train_expanded,
         epochs=20,
-        batch_size=32,
-        validation_data=(X_valid_flat, y_valid_expanded)
+        batch_size=8,  # Reduced batch size for small dataset
+        validation_data=(X_valid_flat, y_valid_expanded),
+        callbacks=[early_stopping]
     )
+    
+    # Calculate predictions
+    y_pred = model.predict(X_valid_flat)
+    
+    # Calculate metrics
+    accuracy, precision, recall = calculate_metrics(y_valid_expanded, y_pred)
+    
+    # Save metrics
+    metrics = {
+        'accuracy': float(accuracy),
+        'precision': float(precision),
+        'recall': float(recall)
+    }
+    save_metrics(condition, metrics)
+    
+    # Print metrics
+    print(f"\nPerformance Metrics for {condition}:")
+    print(f"Accuracy: {accuracy:.4f}")
+    print(f"Precision: {precision:.4f}")
+    print(f"Recall: {recall:.4f}")
     
     # Save model
     model_path = f'./model/{condition.lower()}_model.h5'
     model.save(model_path)
     print(f"Model saved to {model_path}")
     
-    # Evaluate model
-    val_loss, val_accuracy = model.evaluate(X_valid_flat, y_valid_expanded)
-    print(f"Validation accuracy: {val_accuracy:.4f}")
-    
-    return history
+    return history, metrics
 
 def main():
     """Train models for all conditions"""
     conditions = ['ACL', 'Meniscus', 'Abnormal']
     
     for condition in conditions:
-        history = train_model(condition)
+        history, metrics = train_model(condition)
         print(f"\nFinished training {condition} model\n{'='*50}")
 
 if __name__ == "__main__":
