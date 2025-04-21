@@ -25,6 +25,7 @@ jobs:
                   username: ${{ secrets.VPS_USERNAME }}
                   key: ${{ secrets.VPS_SSH_KEY }}
                   script: |
+                      cd ~/projects/ProjetML
                       if [ ! -d "venv" ]; then
                         python3.10 -m venv venv
                         source venv/bin/activate
@@ -41,6 +42,7 @@ jobs:
                   username: ${{ secrets.VPS_USERNAME }}
                   key: ${{ secrets.VPS_SSH_KEY }}
                   script: |
+                      cd ~/projects/ProjetML
                       if ! command -v streamlit &> /dev/null; then
                         source venv/bin/activate
                         pip install streamlit
@@ -53,8 +55,8 @@ jobs:
                   username: ${{ secrets.VPS_USERNAME }}
                   key: ${{ secrets.VPS_SSH_KEY }}
                   script: |
-                      source venv/bin/activate
                       cd ~/projects/ProjetML
+                      source venv/bin/activate
                       python train_models.py
 
             - name: Create Start Script
