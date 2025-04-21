@@ -5,6 +5,7 @@ import tensorflow as tf
 from PIL import Image
 import os
 from pathlib import Path
+import json
 
 # Set page config
 st.set_page_config(
@@ -100,11 +101,21 @@ try:
     st.sidebar.write(f"Training samples: {len(train_stats)}")
     st.sidebar.write(f"Validation samples: {len(valid_stats)}")
     
-    # Add model performance metrics if available
+    # Add model performance metrics
     st.sidebar.header("Model Performance")
-    st.sidebar.write("Validation Accuracy: 85.2%")
-    st.sidebar.write("Validation Precision: 83.7%")
-    st.sidebar.write("Validation Recall: 86.9%")
+    
+    # Load and display metrics for each condition
+    conditions = ['ACL', 'Meniscus', 'Abnormal']
+    for condition in conditions:
+        metrics_path = f'./model/{condition.lower()}_metrics.json'
+        if Path(metrics_path).exists():
+            with open(metrics_path, 'r') as f:
+                metrics = json.load(f)
+                st.sidebar.subheader(f"{condition} Model")
+                st.sidebar.write(f"Accuracy: {metrics['accuracy']*100:.1f}%")
+                st.sidebar.write(f"Precision: {metrics['precision']*100:.1f}%")
+                st.sidebar.write(f"Recall: {metrics['recall']*100:.1f}%")
+                st.sidebar.write("---")
     
 except Exception as e:
     st.sidebar.warning("Could not load model statistics")
@@ -127,4 +138,4 @@ st.sidebar.markdown("""
 2. The system will automatically analyze the image
 3. Results show probability scores for each condition
 4. Higher percentages indicate higher likelihood of the condition
-""") 
+""")
