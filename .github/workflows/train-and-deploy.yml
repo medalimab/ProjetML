@@ -51,5 +51,5 @@ jobs:
                   username: ${{ secrets.VPS_USERNAME }}
                   key: ${{ secrets.VPS_SSH_KEY }}
                   script: |
-                    sudo /bin/systemctl restart streamlit
-                    sudo /bin/systemctl status streamlit --no-pager
+                    systemctl --user restart streamlit
+                    systemctl --user status streamlit --no-pager
