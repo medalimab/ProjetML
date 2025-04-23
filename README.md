@@ -98,7 +98,6 @@ Temps par epoch : ~270 secondes
 Exactitude (Accuracy) : 85.2 %
 Précision : 83.7 %
 Rappel (Recall) : 86.9 %
-AUC-ROC : 0.89
 ## 🚀 Déploiement
 Application avec Streamlit
 L’application déployée permet :
@@ -108,19 +107,4 @@ Détection des déchirures du LCA
 Détection des lésions méniscales
 Détection des anomalies générales
 📊 Affichage des probabilités pour chaque diagnostic
-```bash
-pip install -r requirements.txt
-```
-ensure your trained models are saved in the ./model directory as:
-acl_model.h5 - Model for ACL tear detection
-meniscus_model.h5 - Model for meniscus tear detection
-abnormal_model.h5 - Model for general abnormality detection
 
-Train the models:
-```bash
-python train_models.py
-```
-Run the Streamlit app:
-```bash
-streamlit run app.py
-```
