@@ -107,4 +107,6 @@ Détection des déchirures du LCA
 Détection des lésions méniscales
 Détection des anomalies générales
 📊 Affichage des probabilités pour chaque diagnostic
+lien de la presentation :
+https://www.canva.com/design/DAGlYnUA0vA/qSmh8j2uv9iusAls2yPYTA/edit?utm_content=DAGlYnUA0vA&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
 
