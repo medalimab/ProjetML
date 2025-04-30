@@ -28,6 +28,7 @@ Les lésions ligamentaires du genou affectent des millions de patients annuellem
 ## 📊 Jeu de Données
 
 **Source** : MRNet-v1.0 (Stanford Medicine)
+https://stanfordmlgroup.github.io/competitions/mrnet/?utm_source=chatgpt.com&fbclid=IwY2xjawJ-xFxleHRuA2FlbQIxMABicmlkETE5d3dSa3k3S0ZNTDhpdEZEAR70BAdnSblBL1M1E2Za2tQS1ve5NDPOvNvAIK8lDgDEGxptZVSfXONYhj2tmA_aem_t0qTu0AwyMHXI7hiMJXPCA
 
 | Caractéristique          | Détails                          |
 |--------------------------|----------------------------------|
@@ -52,6 +53,7 @@ Identifiant de l’examen (0000.npy)
 Label associé (0 ou 1)
 Fichiers : train-abnormal.csv, train-acl.csv, train-meniscus.csv
 **👁️‍🗨️ Aperçu des données**
+
 Nombre d’IRM d’entraînement : 1130
 Exemple de forme : (20, 256, 256)
 Après prétraitement : (1130, 3, 224, 224)
